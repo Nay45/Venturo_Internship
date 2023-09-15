@@ -1,25 +1,29 @@
+<!-- Berfungsi untuk mengambil data menu dari API -->
 <?php
 function fetchMenuData() {
     return json_decode(file_get_contents("http://tes-web.landa.id/intermediate/menu"), true);
 }
 
+// Berfungsi untuk mengambil data transaksi untuk tahun tertentu dari API
 function fetchTransaksiData($tahun) {
     return json_decode(file_get_contents("http://tes-web.landa.id/intermediate/transaksi?tahun=" . $tahun), true);
 }
 
+// Berfungsi untuk menginisialisasi struktur data menu dengan nilai default
 function initializeMenuData($menu) {
     $menuData = [];
     foreach ($menu as $menuItem) {
         $menuData[$menuItem['menu']] = [
             'menu' => $menuItem['menu'],
             'kategori' => $menuItem['kategori'],
-            'value' => array_fill(0, 12, 0),
-            'totalHarga' => 0,
+            'value' => array_fill(0, 12, 0), // Inisialisasi array untuk menyimpan total per bulan
+            'totalHarga' => 0, // Total harga awal untuk menu ini adalah 0
         ];
     }
     return $menuData;
 }
 
+// Berfungsi untuk menghitung total untuk item menu dan total keseluruhan
 function calculateTotals($menuData, $transaksi) {
     $totalPerbulan = array_fill(0, 12, 0);
     $totalPertahun = 0;
@@ -30,11 +34,13 @@ function calculateTotals($menuData, $transaksi) {
         $bulan = $tanggal->format("n");
         $namaMenu = $transaction['menu'];
 
+        // Memperbarui data menu untuk item menu tertentu
         if (isset($menuData[$namaMenu])) {
             $menuData[$namaMenu]['value'][$bulan - 1] += $harga;
             $menuData[$namaMenu]['totalHarga'] += $harga;
         }
 
+        // Memperbarui total bulanan dan tahunan
         $totalPerbulan[$bulan - 1] += $harga;
         $totalPertahun += $harga;
     }
@@ -42,10 +48,12 @@ function calculateTotals($menuData, $transaksi) {
     return [$menuData, $totalPerbulan, $totalPertahun];
 }
 
+// Menentukan tahun yang tersedia dan mendapatkan tahun yang dipilih dari parameter kueri URL
 $availableYears = ['2021', '2022'];
 $selectedYear = isset($_GET['tahun']) && in_array($_GET['tahun'], $availableYears) ? $_GET['tahun'] : null;
 
 if ($selectedYear) {
+    // Mengambil dan menginisialisasi data menu, lalu menghitung total
     $menuData = initializeMenuData(fetchMenuData());
     list($menuData, $totalPerbulan, $totalPertahun) = calculateTotals($menuData, fetchTransaksiData($selectedYear));
 }
@@ -84,6 +92,7 @@ if ($selectedYear) {
                             <select id="my-select" class="form-control" name="tahun">
                                 <option value="">Pilih Tahun</option>
                                 <?php foreach ($availableYears as $year): ?>
+                                    <!-- Menghasilkan opsi dropdown untuk tahun yang tersedia -->
                                     <option value="<?= $year ?>" <?= $selectedYear === $year ? 'selected' : '' ?>><?= $year ?></option>
                                 <?php endforeach; ?>
                             </select>
@@ -99,23 +108,50 @@ if ($selectedYear) {
                 <div class="table-responsive">
                     <table class="table table-hover table-bordered" style="margin: 0;">
                         <thead>
-                        <tr class="table-dark">
-                            <th rowspan="2" style="text-align:center;vertical-align: middle;width: 250px;">Menu</th>
-                            <th colspan="12" style="text-align: center;">Periode Pada <?= $selectedYear ?></th>
-                            <th rowspan="2" style="text-align:center;vertical-align: middle;width:75px">Total</th>
-                        </tr>
-                        <tr class="table-dark">
-                            <?php for ($i = 1; $i <= 12; $i++): ?>
-                                <th style="text-align: center;width: 75px;"><?= date("M", mktime(0, 0, 0, $i, 1, $selectedYear)) ?></th>
-                            <?php endfor; ?>
-                        </tr>
+                            <tr class="table-dark">
+                                <th rowspan="2" style="text-align:center;vertical-align: middle;width: 250px;">Menu</th>
+                                <th colspan="12" style="text-align: center;">Periode Pada <?= $selectedYear ?></th>
+                                <th rowspan="2" style="text-align:center;vertical-align: middle;width:75px">Total</th>
+                            </tr>
+                            <tr class="table-dark">
+                                <?php for ($i = 1; $i <= 12; $i++): ?>
+                                    <!-- Membuat daftar bulan berdasarkan tahun yang dipilih -->
+                                    <!-- mktime format ==> (jam, menit, detik, bulan, tanggal, tahun) -->
+                                    <th style="text-align: center;width: 75px;"><?= date("M", mktime(0, 0, 0, $i, 1, $selectedYear)) ?></th>
+                                <?php endfor; ?>
+                            </tr>
                         </thead>
                         <tbody>
-                        <tr>
-                            <td class="table-secondary" colspan="14"><b>Makanan</b></td>
-                        </tr>
-                        <?php foreach ($menuData as $menu): ?>
-                            <?php if ($menu['kategori'] === "makanan" || $menu['kategori'] === "minuman"): ?>
+                            <?php
+                            $foodSeparatorAdded = false; // Untuk melacak apakah separator "Makanan" sudah ditambahkan.
+                            $drinkSeparatorAdded = false; // Untuk melacak apakah separator "Minuman" sudah ditambahkan.
+
+                            foreach ($menuData as $menu): ?>
+                                <?php
+                                if ($menu['kategori'] === "makanan"):
+                                    // Tambahkan separator "Makanan" jika belum ditambahkan
+                                    if (!$foodSeparatorAdded):
+                                        ?>
+                                        <tr>
+                                            <td class="table-secondary" colspan="14"><b>Makanan</b></td>
+                                        </tr>
+                                        <?php
+                                        $foodSeparatorAdded = true; // Tandai bahwa separator "Makanan" sudah ditambahkan
+                                    endif;
+                                elseif ($menu['kategori'] === "minuman"):
+                                    // Tambahkan separator "Minuman" jika belum ditambahkan
+                                    if (!$drinkSeparatorAdded):
+                                        ?>
+                                        <tr>
+                                            <td class="table-secondary" colspan="14"><b>Minuman</b></td>
+                                        </tr>
+                                        <?php
+                                        $drinkSeparatorAdded = true; // Tandai bahwa separator "Minuman" sudah ditambahkan
+                                    endif;
+                                endif;
+                                ?>
+
+                                <!-- Tampilkan baris menu -->
                                 <tr>
                                     <td style="text-align: left;"><?= $menu['menu'] ?></td>
                                     <?php foreach ($menu['value'] as $value): ?>
@@ -123,15 +159,15 @@ if ($selectedYear) {
                                     <?php endforeach; ?>
                                     <td style="text-align: right;"><b><?= number_format($menu['totalHarga']) ?></b></td>
                                 </tr>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                        <tr>
-                            <td class="table-dark" colspan="1"><b>Total</b></td>
-                            <?php foreach ($totalPerbulan as $total): ?>
-                                <td class="table-dark" style="text-align: right;"><b><?= number_format($total) ?></b></td>
                             <?php endforeach; ?>
-                            <td class="table-dark" style="text-align: right;" colspan="1"><b><?= number_format($totalPertahun) ?></b></td>
-                        </tr>
+
+                            <tr>
+                                <td class="table-dark" colspan="1"><b>Total</b></td>
+                                <?php foreach ($totalPerbulan as $total): ?>
+                                    <td class="table-dark" style="text-align: right;"><b><?= number_format($total) ?></b></td>
+                                <?php endforeach; ?>
+                                <td class="table-dark" style="text-align: right;" colspan="1"><b><?= number_format($totalPertahun) ?></b></td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
