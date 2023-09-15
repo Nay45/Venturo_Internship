@@ -1,5 +1,5 @@
 # Data 2021
-![2021](https://github.com/Nay45/Venturo_Internship/assets/101272430/bfec5da5-42ac-4984-8cbc-8b2ca8c5401a)
+![2021](https://github.com/Nay45/Venturo_Internship/assets/101272430/c4a2888b-4c78-4853-b036-d25204069217)
 
 # Data 2022
-![2022](https://github.com/Nay45/Venturo_Internship/assets/101272430/e41138d6-e050-488c-9745-f9c139d251ba)
+![2022](https://github.com/Nay45/Venturo_Internship/assets/101272430/3618070e-39c7-4ff6-946a-edc1eef72c5b)
